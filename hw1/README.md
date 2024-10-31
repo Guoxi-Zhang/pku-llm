@@ -134,13 +134,13 @@
 **对比GPT-2的tokenizer**
 
 - 中文
-    - 我的tokenizer encode产生的token长度为`118` 
-    - GPT-2 tokenizer encode产生的token长度为`306` 
+    - 我的tokenizer encode产生的token长度为`118` ，token多为中文词语或者单个中文字符，例如：`'博士', '学位论文', '应当', '表', '明'`
+    - GPT-2 tokenizer encode产生的token长度为`306` 。
 - 英文
-    - 我的tokenizer encode产生的token长度为`118` 
-    - GPT-2 tokenizer encode产生的token长度为`306` 
+    - 我的tokenizer encode 产生的token长度为`942` ，且所有token为单个字母。
+    - GPT-2 tokenizer encode 产生的token长度为`185` ，token一般为整个单词或者单词的一部分，例如：`'Orig', 'inated', ' the', ' Imperial', ' University'`
 - 产生上述差别的原因：
-    - 中文：GPT2的训练数据以英文为主，中文数据少，而我的 tokenizer 全为中文训练，且和测试字符串主题相似，有很多相同的词语，导致 我的 tokenizer 能够合并更多的字词，从而有更少的token长度
+    - 中文：GPT2的训练数据以英文为主，中文数据少，而我的 tokenizer 全为中文训练，且和测试字符串主题相似，有很多相同的词语，导致 我的 tokenizer 能够合并更多的字词，从而有更少的token长度。
     - 英文：相反，我的 tokenizer 中几乎没有英文，因此基本没有任何字词合并，字符串被分割为一个个单独的字母，导致产生的 token 非常多；而GPT2的训练数据以英文为主，能够很好地合并字词，token很少。
 
 

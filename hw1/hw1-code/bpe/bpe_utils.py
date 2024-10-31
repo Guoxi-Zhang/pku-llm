@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import unicodedata
 
 
-def get_stats(ids:List[int], counts:Dict[Tuple[int, int], int]=None) -> Dict[Tuple[int, int], int]:
+def get_stats(ids:List[int], counts:Dict[Tuple[int, int], int] | None = None) -> Dict[Tuple[int, int], int]:
     """
     给出一个字节列表，返回相邻 字节对 的出现次数,允许传入一个counts字典，用于累加计数
     Params:
