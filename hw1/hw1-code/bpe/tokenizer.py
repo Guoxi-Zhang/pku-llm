@@ -1,109 +1,115 @@
 import json
-from typing import Dict
-from bpe_utils import init_vocab, get_stats, merge_vocab, get_tokens
+from typing import Dict, Tuple
+from bpe_utils import Tokenizer, get_stats, merge, render_token
+from transformers import  GPT2Tokenizer
 
-class Tokenizer:
+class BasicTokenizer(Tokenizer):
+
     def __init__(self):
-        self.vocab: Dict[str, int] = {}
-        self.tokens: Dict[str, int] = {}
+        super().__init__()
 
-    def train(self, text:str, vocab_size:int):
-        """
-        Train the tokenizer using BPE algorithm.
-        Params:
-            text (str): string-type data used to run BPE.
-            vocab_size (int): the size of final vocabulary.
+    def train(self, text, vocab_size, verbose=False):
+        assert vocab_size >= 256
+        num_merges = vocab_size - 256
 
-        Return:
-            None
-        """
-        self.vocab = init_vocab(text)
-        # 当词表大小小于vocab_size时，继续合并
-        while len(self.tokens) < vocab_size:
-            pairs = get_stats(self.vocab)
-            if not pairs:
-                break
-            best = max(pairs.items(), key=lambda item: item[1]) # 使用 items() 和 lambda 函数
-            # 如果pair的频率小于2，则停止合并
-            if best[1] < 2:
-                break
-            best = best[0]
-            self.vocab = merge_vocab(best, self.vocab)
-            new_token = ''.join(best)
-            self.tokens[new_token] = pairs[best]
+        # 输入文本预处理
+        text_bytes = text.encode("utf-8") #编码为原始字节
+        ids = list(text_bytes) # list of integers in range 0..255(每个字节对应一个整数)
 
-    def encode(self, text:str)->list:
-        """
-        Encode the input string into a token list.
-        Params:
-            text (str): data to be tokenized.
+        # 迭代地合并最常见的pair以创建新的token
+        merges = {} # (int, int) -> int
+        vocab = {idx: bytes([idx]) for idx in range(256)} # int -> bytes
+        for i in range(num_merges):
+            # count up the number of times every consecutive pair appears
+            stats = get_stats(ids)
+            # find the pair with the highest count
+            pair = max(stats, key=stats.get)
+            # mint a new token: assign it the next available id
+            idx = 256 + i
+            # replace all occurrences of pair in ids with idx
+            ids = merge(ids, pair, idx)
+            # save the merge
+            merges[pair] = idx
+            vocab[idx] = vocab[pair[0]] + vocab[pair[1]]
+            # prints
+            if verbose:
+                print(f"merge {i+1}/{num_merges}: {pair} -> {idx} ({vocab[idx]}) had {stats[pair]} occurrences")
 
-        Return:
-            ids (list): list of integer-type tokens.
-        """
-        # 将词表中的子词按照长度从大到小排序
-        sorted_tokens = sorted(self.tokens.keys(), key=len, reverse=True)
-        
-        words = text.strip().split()
-        encoded = []
-        
-        for word in words:
-            i = 0
-            while i < len(word):
-                match = None
-                # 遍历排序好的词表，寻找匹配的子词
-                for token in sorted_tokens:
-                    if word[i:i+len(token)] == token:
-                        match = token
-                        break
-                if match:
-                    encoded.append(match)
-                    i += len(match)
-                else:
-                    # 如果没有匹配的子词，直接使用单个字符
-                    encoded.append(word[i])
-                    i += 1
-        
-        return encoded
+        # save class variables
+        self.merges = merges # used in encode()
+        self.vocab = vocab   # used in decode()
 
-    def decode(self, ids:list)->str:
-        """
-        Decode a token list into a string.
-        Params:
-            ids (list): list of integer-type tokens.
-
-        Return:
-            text (str): string-type data.
-        """
-        # 将token列表中的每个token连接起来，并去掉最后一个</w>
-        text = ''.join(ids)
-        text = text.replace(' </w>', '')
+    def decode(self, ids):
+        # given ids (list of integers), return Python string
+        text_bytes = b"".join(self.vocab[idx] for idx in ids)
+        text = text_bytes.decode("utf-8", errors="replace")
         return text
-    
-    # def load_vocab(self, vocab_path:str):
-    #     with open(vocab_path, 'r', encoding='utf-8') as f:
-    #         self.vocab = json.load(f)
-    
-    # def load_tokens(self, tokens_path:str):
-    #     with open(tokens_path, 'r', encoding='utf-8') as f:
-    #         self.tokens = json.load(f) 
+
+    def encode(self, text):
+        # given a string text, return the token ids
+        text_bytes = text.encode("utf-8") # raw bytes
+        ids = list(text_bytes) # list of integers in range 0..255
+        while len(ids) >= 2:
+            # find the pair with the lowest merge index
+            stats = get_stats(ids)
+            pair = min(stats, key=lambda p: self.merges.get(p, float("inf")))
+            # subtle: if there are no more merges available, the key will
+            # result in an inf for every single pair, and the min will be
+            # just the first pair in the list, arbitrarily
+            # we can detect this terminating case by a membership check
+            if pair not in self.merges:
+                break # nothing else can be merged anymore
+            # otherwise let's merge the best pair (lowest merge index)
+            idx = self.merges[pair]
+            ids = merge(ids, pair, idx)
+        return ids
+
+
     
 
 if __name__ == '__main__':
-    tokenizer = Tokenizer()
-    with open('bpe/manual.txt', 'r', encoding='utf-8') as f:
-        text = f.read()
-    tokenizer.train(text, 1024)
+    tokenizer = BasicTokenizer()
+    # with open('bpe/manual.txt', 'r', encoding='utf-8') as f:
+    #     text = f.read()
+    # tokenizer.train(text, 1024, verbose=True)
+    # tokenizer.save('bpe/checkpoints/manual_1024')
+
+    tokenizer.load('bpe/checkpoints/manual_1024.model')
+
+    # 加载GPT-2的tokenizer
+    gpt2Tokenizer = GPT2Tokenizer.from_pretrained('./bpe/assets/gpt2_tokenizer')
+    print("GPT-2 tokenizer已成功加载")
+    test_text1 = '博士学位论文应当表明作者具有独立从事科学研究工作的能力，并在科学或专门技术上做出创造性的成果。博士学位论文或摘要，应当在答辩前三个月印送有关单位，并经同行评议。学位授予单位应当聘请两位与论文有关学科的专家评阅论文，其中一位应当是外单位的专家。评阅人应当对论文写详细的学术评语，供论文答辩委员会参考。'
+    test_text2 = 'Originated as the Imperial University of Peking in 1898, Peking University was China’s first national comprehensive university and the supreme education authority at the time. Since the founding of the People’s Republic of China in 1949, it has developed into a comprehensive university with fundamental education and research in both humanities and science. The reform and opening-up of China in 1978 has ushered in a new era for the University unseen in history. And its merger with Beijing Medical University in 2000 has geared itself up for all-round and vibrant growth in such fields as science, engineering, medicine, agriculture, humanities and social sciences. Supported by the “211 Project” and the “985 Project”, the University has made remarkable achievements, such as optimizing disciplines, cultivating talents, recruiting high-caliber teachers, as well as teaching and scientific research, which paves the way for a world-class university.'
     
-    test_text = '博士学位论文应当表明作者具有独立从事科学研究工作的能力，并在科学或专门技术上做出创造性的成果。博士学位论文或摘要，应当在答辩前三个月印送有关单位，并经同行评议。学位授予单位应当聘请两位与论文有关学科的专家评阅论文，其中一位应当是外单位的专家。评阅人应当对论文写详细的学术评语，供论文答辩委员会参考。'
-    print(tokenizer.encode(test_text))
-    print(tokenizer.decode(tokenizer.encode(test_text)))
-    # # 以json格式保存词表
-    # with open('bpe/checkpoints/tokens.json', 'w', encoding='utf-8') as f:
-    #     json.dump(tokenizer.tokens, f, ensure_ascii=False)
-    # # 以json格式保存词表
-    # with open('bpe/checkpoints/vocab.json', 'w', encoding='utf-8') as f:
-    #     json.dump(tokenizer.vocab, f, ensure_ascii=False)
+    encoded_text = [['',''], ['','']]
+    decoded_text = [['',''], ['','']]
+    # 使用GPT-2的tokenizer对文本进行编码解码
+    encoded_text[0][0] = gpt2Tokenizer.encode(test_text1)
+    decoded_text[0][0] = gpt2Tokenizer.decode(encoded_text[0][0])
+    encoded_text[0][1] = gpt2Tokenizer.encode(test_text2)
+    decoded_text[0][1] = gpt2Tokenizer.decode(encoded_text[0][1])
+
+    # 使用我的tokenizer对文本进行编码解码
+    encoded_text[1][0] = tokenizer.encode(test_text1)
+    decoded_text[1][0] = tokenizer.decode(encoded_text[1][0])
+    encoded_text[1][1] = tokenizer.encode(test_text2)
+    decoded_text[1][1] = tokenizer.decode(encoded_text[1][1])
+
+    print("GPT-2 tokenizer编码1后的文本：",len(encoded_text[0][0]), encoded_text[0][0])
+    print("我的tokenizer编码1后的文本：",len(encoded_text[1][0]), encoded_text[1][0])
+    print("==============================================")
+    print("GPT-2 tokenizer解码1后的文本：", decoded_text[0][0])
+    print("我的tokenizer解码1后的文本：", decoded_text[1][0])
+    print("==============================================")
+    print("GPT-2 tokenizer编码2后的文本：",len(encoded_text[0][1]), encoded_text[0][1])
+    print("我的tokenizer编码2后的文本：",len(encoded_text[1][1]), encoded_text[1][1])
+    print("==============================================")
+    print("GPT-2 tokenizer解码2后的文本：", decoded_text[0][1])
+    print("我的tokenizer解码2后的文本：", decoded_text[1][1])
+    print("==============================================")
+    print("正确性比较：", decoded_text[0][0] == decoded_text[1][0], decoded_text[0][1] == decoded_text[1][1])
+
 
     
 
