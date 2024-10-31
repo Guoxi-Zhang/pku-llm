@@ -5,9 +5,9 @@ import unicodedata
 
 def get_stats(ids:List[int], counts:Dict[Tuple[int, int], int]=None) -> Dict[Tuple[int, int], int]:
     """
-    给出一个id列表，返回相邻 id对 的出现次数,允许传入一个counts字典，用于累加计数
+    给出一个字节列表，返回相邻 字节对 的出现次数,允许传入一个counts字典，用于累加计数
     Params:
-        ids (List[int]): list of ids
+        ids (List[int]): 字节列表
         counts (Dict[Tuple[int, int], int]): 相邻字符对及其出现频率的字典
     Return:
         counts (Dict[Tuple[int, int], int]): 相邻字符对及其出现频率的字典
@@ -15,19 +15,19 @@ def get_stats(ids:List[int], counts:Dict[Tuple[int, int], int]=None) -> Dict[Tup
         ids=[1, 2, 3, 1, 2] -> {(1, 2): 2, (2, 3): 1, (3, 1): 1}
     """
     counts = {} if counts is None else counts
-    for pair in zip(ids, ids[1:]): # iterate consecutive elements
+    for pair in zip(ids, ids[1:]): # 从第一个元素开始，每次取两个元素
         counts[pair] = counts.get(pair, 0) + 1
     return counts
 
 def merge(ids:List[int], pair:Tuple[int, int], idx:int) -> List[int]:
     """
-    合并所有连续出现的pair为新的token idx，返回新的ids
+    合并所有连续出现的pair为新的token:idx，返回新的字节列表
     Params:
-        ids (List[int]): list of ids
+        ids (List[int]): 字节列表
         pair (Tuple[int, int]): 待合并的字符对
-        idx (int): 新的token id
+        idx (int): 新的token
     Return:
-        newids (List[int]): 合并后的ids
+        newids (List[int]): 合并后的字节列表
     Example: 
         ids=[1, 2, 3, 1, 2], pair=(1, 2), idx=4 -> [4, 3, 4]
     """
@@ -85,7 +85,7 @@ class Tokenizer:
         raise NotImplementedError
 
     def _build_vocab(self):
-        # 词表从merges中简单且确定性地派生
+        # 不断合并相邻字词，构建词表
         vocab = {idx: bytes([idx]) for idx in range(256)}
         for (p0, p1), idx in self.merges.items():
             vocab[idx] = vocab[p0] + vocab[p1]

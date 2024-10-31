@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 from bpe_utils import Tokenizer, get_stats, merge, render_token
 from transformers import  GPT2Tokenizer
 
@@ -10,26 +10,27 @@ class BasicTokenizer(Tokenizer):
 
     def train(self, text, vocab_size, verbose=False):
         assert vocab_size >= 256
+        # 初始词表为256，合并vocab_size - 256次后达到词表大小
         num_merges = vocab_size - 256
 
         # 输入文本预处理
         text_bytes = text.encode("utf-8") #编码为原始字节
-        ids = list(text_bytes) # list of integers in range 0..255(每个字节对应一个整数)
+        ids = list(text_bytes) # 整数列表，每个整数取值为0-255（对应一个字节）
 
         # 迭代地合并最常见的pair以创建新的token
-        merges = {} # (int, int) -> int
-        vocab = {idx: bytes([idx]) for idx in range(256)} # int -> bytes
+        merges:Dict[Tuple[int, int], int] = {} # (int, int) -> int,合并字节对为新的token
+        vocab:Dict[int, int] = {idx: bytes([idx]) for idx in range(256)} # int -> bytes, 词表
         for i in range(num_merges):
-            # count up the number of times every consecutive pair appears
             stats = get_stats(ids)
-            # find the pair with the highest count
+            # 找到最常见的pair
             pair = max(stats, key=stats.get)
-            # mint a new token: assign it the next available id
+            # 新token的索引
             idx = 256 + i
-            # replace all occurrences of pair in ids with idx
+            # 合并所有出现的pair为新的token
             ids = merge(ids, pair, idx)
-            # save the merge
+            # 保存合并结果
             merges[pair] = idx
+            # 更新词表，合并两个字节对象为一个新的字节对象
             vocab[idx] = vocab[pair[0]] + vocab[pair[1]]
             # prints
             if verbose:
@@ -39,27 +40,26 @@ class BasicTokenizer(Tokenizer):
         self.merges = merges # used in encode()
         self.vocab = vocab   # used in decode()
 
-    def decode(self, ids):
-        # given ids (list of integers), return Python string
+    def decode(self, ids:List[int])->str:
+        # 给定一个token列表，返回一个字符串
+        # 首先拼接所有token，然后解码为utf-8字符串
         text_bytes = b"".join(self.vocab[idx] for idx in ids)
         text = text_bytes.decode("utf-8", errors="replace")
         return text
 
-    def encode(self, text):
-        # given a string text, return the token ids
-        text_bytes = text.encode("utf-8") # raw bytes
-        ids = list(text_bytes) # list of integers in range 0..255
+    def encode(self, text:str)->List[int]:
+        # 给定一个字符串，返回一个token列表
+        text_bytes = text.encode("utf-8") # 编码为原始字节
+        ids = list(text_bytes) # 整数列表，每个整数取值为0-255（对应一个字节）
         while len(ids) >= 2:
-            # find the pair with the lowest merge index
+            # 找到合并索引值最低的字符对
+            # (由于构建词表时merge有先后顺序,encode时也要按照对应顺序合并，先合并索引值低的pair）
             stats = get_stats(ids)
             pair = min(stats, key=lambda p: self.merges.get(p, float("inf")))
-            # subtle: if there are no more merges available, the key will
-            # result in an inf for every single pair, and the min will be
-            # just the first pair in the list, arbitrarily
-            # we can detect this terminating case by a membership check
+            # 微妙之处：如果没有更多的合并可用，键将导致每个字符对的值都是inf，min将返回一个inf
             if pair not in self.merges:
-                break # nothing else can be merged anymore
-            # otherwise let's merge the best pair (lowest merge index)
+                break # 不再有其他可以合并的内容
+            # 否则合并最佳字符对（合并索引最低）
             idx = self.merges[pair]
             ids = merge(ids, pair, idx)
         return ids
