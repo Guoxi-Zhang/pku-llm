@@ -109,10 +109,3 @@ if __name__ == '__main__':
     print("我的tokenizer解码2后的文本：", decoded_text[1][1])
     print("==============================================")
     print("正确性比较：", decoded_text[0][0] == decoded_text[1][0], decoded_text[0][1] == decoded_text[1][1])
-
-
-    
-
-
-
-
