@@ -111,6 +111,25 @@ class GPT(nn.Module):
         # 最终的输出层
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
+    def forward(self, idx: torch.Tensor):
+        # idx:输入序列的token索引 (B, T)
+        B, T = idx.size()
+        assert T <= self.config.block_size, f"Cannot forward sequence of length {T}, block size is only {self.config.block_size}"
+        # posisition embeddings
+        pos = torch.arange(0, T, dtype=torch.long, device=idx.device) # shape (T)
+        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (T, n_embd)
+        tok_emb = self.transformer.wte(idx) # token embeddings of shape (B, T, n_embd)
+        # 将token嵌入向量和位置嵌入向量相加，得到最终的嵌入表示。
+        x = tok_emb + pos_emb
+        # forward the blocks of the transformer
+        for block in self.transformer.h:
+            x = block(x)
+        # forward the final layernorm and the classifier
+        x = self.transformer.ln_f(x)
+        # 得到一个用对数表示的概率分布，表示下一个token的概率。
+        logits = self.lm_head(x) # (B, T, vocab_size)
+        return logits
+
     @classmethod
     def from_pretrained(cls, model_type:str, model_path:str|None=None):
         """Loads pretrained GPT-2 model weights from huggingface"""
@@ -161,9 +180,6 @@ class GPT(nn.Module):
         return model
 
 # -----------------------------------------------------------------------------
-model = GPT.from_pretrained('gpt2', 'assets/gpt2')
-print("didn't crash yay!")
-
 # 下载模型 
 # from transformers import GPT2LMHeadModel
 # model = GPT2LMHeadModel.from_pretrained('gpt2')
@@ -171,3 +187,46 @@ print("didn't crash yay!")
 
 # model.save_pretrained('assets/gpt2')
 # print("saved model to assets/gpt2")
+
+num_return_sequences = 5
+max_length = 30
+model = GPT.from_pretrained('gpt2', '../../assets/gpt2')
+model.eval()
+model.to('cuda')
+
+# prefix tokens
+import tiktoken
+enc = tiktoken.get_encoding('gpt2')
+tokens = enc.encode("Hello,I'm a-language model,")
+tokens = torch.tensor(tokens,dtype=torch.long)
+tokens = tokens.unsqueeze(0).repeat(num_return_sequences,1)#(5, 8)
+x = tokens.to('cuda')
+# generate! right now x is (B, T) where B = 5, T = 8
+# set the seed to 42
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+while x.size(1) < max_length:
+    # forward the model to get the logits
+    with torch.no_grad():
+        logits = model(x) # (B, T, vocab_size)
+        # 只获取最后一个token的概率分布
+        logits = logits[:, -1, :] # (B, vocab_size)
+        # get the probabilities
+        probs = F.softmax(logits, dim=-1)
+        # do top-k sampling of 50 (huggingface pipeline default)
+        # 选择概率最大的前50个token，之后的token的概率都设置为0
+        # topk_probs here becomes (5, 50), topk_indices is (5, 50)
+        topk_probs, topk_indices = torch.topk(probs, 50, dim=-1)
+        # 从50个token中按照概率分布采样一个token
+        # multinomial：根据给定的概率分布，返回一个采样的索引
+        ix = torch.multinomial(topk_probs, 1) # (B, 1)
+        # 将采样的token的索引从50个token中取出
+        xcol = torch.gather(topk_indices, -1, ix) # (B, 1)
+        # 加入到原来的序列中
+        x = torch.cat((x, xcol), dim=1)
+
+# print the generated text
+for i in range(num_return_sequences):
+    tokens = x[i, :max_length].tolist()
+    decoded = enc.decode(tokens)
+    print(">", decoded)

@@ -62,7 +62,7 @@
 
     - ```Python
         def _build_vocab(self):
-                # 不断合并相邻字词，构建词表
+                # 不断合并相邻子词，构建词表
                 vocab = {idx: bytes([idx]) for idx in range(256)}
                 for (p0, p1), idx in self.merges.items():
                     vocab[idx] = vocab[p0] + vocab[p1]
@@ -135,13 +135,18 @@
 
 - 中文
     - 我的tokenizer encode产生的token长度为`118` ，token多为中文词语或者单个中文字符，例如：`'博士', '学位论文', '应当', '表', '明'`
-    - GPT-2 tokenizer encode产生的token长度为`306` 。
+    
+    - GPT-2 tokenizer encode产生的token长度为`306` 。token基本全为单个汉字。下图是在tiktokenizer上的token划分，不同颜色代表不同的token：
+    
+        <img src="./README.assets/image-20241102163302211.png" alt="image-20241102163302211" style="zoom:50%;" />
+    
 - 英文
     - 我的tokenizer encode 产生的token长度为`942` ，且所有token为单个字母。
     - GPT-2 tokenizer encode 产生的token长度为`185` ，token一般为整个单词或者单词的一部分，例如：`'Orig', 'inated', ' the', ' Imperial', ' University'`
+    
 - 产生上述差别的原因：
-    - 中文：GPT2的训练数据以英文为主，中文数据少，而我的 tokenizer 全为中文训练，且和测试字符串主题相似，有很多相同的词语，导致 我的 tokenizer 能够合并更多的字词，从而有更少的token长度。
-    - 英文：相反，我的 tokenizer 中几乎没有英文，因此基本没有任何字词合并，字符串被分割为一个个单独的字母，导致产生的 token 非常多；而GPT2的训练数据以英文为主，能够很好地合并字词，token很少。
+    - 中文：GPT2的训练数据以英文为主，中文数据少，而我的 tokenizer 全为中文训练，且和测试字符串主题相似，有很多相同的词语，导致 我的 tokenizer 能够合并更多的子词，从而有更少的token长度和更多的词语或短语token。
+    - 英文：相反，我的 tokenizer 中几乎没有英文，因此基本没有任何子词合并，字符串被分割为一个个单独的字母，导致产生的 token 非常多；而GPT2的训练数据以英文为主，能够很好地合并子词，token很少。
 
 
 ### 回答问题
@@ -226,9 +231,89 @@
 
 ## LLM Implementation
 
+所有commit截图：
+
 
 
 ### Section1
+
+#### 完成GPT2所有类的实现
+
+**transformer 结构实现**
+
+<img src="./README.assets/image-20241101230331307.png" alt="image-20241101230331307" style="zoom: 50%;" />
+
+- transformer 
+
+    - 如上图所示，GPT2的transformer 和原transformer 相比去除了所有encoder，只保留decoder部分
+    - 结构包括`token embedding. positional encoding, 多个隐藏层 ，layer normalization和最终的线性输出层 `
+    - 最终的线性输出层禁用偏置：`self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)`
+
+- Block实现
+    - Block是transformer 中的隐藏层。
+
+    - 包括4层：两个LayerNorm：`ln_1, ln_2`，一层多头自注意力`attn `， 一层全连接:`mlp `
+
+    - 前向传播过程如下，依次经过 `ln_1, attn, ln_2, mlp` , `attn 和mlp`后有残差连接
+
+        ```python
+        x = x + self.attn(self.ln_1(x))
+        x = x + self.mlp(self.ln_2(x))
+        ```
+
+    - > 和原transformer 相比，GPT2 Block 其使用一个干净的残差连接，而不是残差中间经过一个Norm。
+        >
+        > - 注意力是聚合、池化、加权求和的过程
+        > -  MLP是发生在每个单独的token上，token之间没有联系，是mapping操作 
+
+- MLP实现
+    - GPT2中的MLP是一个两层的全连接网络，中间有一个GELU激活函数
+
+    - gelu：类似RELU
+
+        <img src="./README.assets/image-20241101231244529.png" alt="image-20241101231244529" style="zoom:33%;" />
+
+        - 优点：0处光滑可导。
+        - 优点：会贡献一个很小的梯度，便于优化
+        - 有一个使用tanh近似的GELU激活函数（GPT2使用，现在没必要用）
+
+    - 前向传播过程：
+
+        ```python
+        x = self.c_fc(x)
+        x = self.gelu(x)
+        x = self.c_proj(x)
+        ```
+
+- 多头自注意力CausalSelfAttention 过程包括：
+
+    - 对一个batch的所有头计算query, key, value，并改变其形状
+    - 计算注意力分数：$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$(做softmax之前使用一个下三角矩阵来mask未来的信息)
+    - 将多头自注意力的输出合并并经过一个线性层得到输出
+
+#### 实现GPT2的forward()，加载并测试GPT2
+
+- `forward()`过程
+
+    - 获得 `token embeddings` 和  `position embeddings`。
+    - 将token嵌入向量和位置嵌入向量相加，得到最终的嵌入表示。
+    - 在所有`Block`中进行前向传播
+    - 使用`LayerNorm ` 归一化
+    - 经过输出层，得到一个用对数表示的概率分布，表示下一个token的概率。
+
+- 模型测试流程
+
+    - 加载gpt2 模型，将其所有参数赋值给自定义模型
+    - 使用tiktoken获得gpt2的编码器，编码需要扩写的句子为 x
+    - 循环
+        - 将上述 x 输入模型，得到形状为(B, T, vocab_size)的概率分布，获取最后一个token的概率分布。
+        - 选择概率最大的前50个token
+        - 从50个token中按照概率分布采样一个token
+        - 将这个token加入到原来的序列中
+
+- 结果
+
+    ![image-20241102170803541](./README.assets/image-20241102170803541.png)
 
 
 
