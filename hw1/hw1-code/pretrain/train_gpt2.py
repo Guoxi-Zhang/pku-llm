@@ -27,6 +27,7 @@ class CausalSelfAttention(nn.Module):
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
         # c_proj：全连接层，将多头注意力机制的输出映射到原始的embedding维度，用作输出
         self.c_proj = nn.Linear(config.n_embd, config.n_embd)
+        self.c_proj.NANOGPT_SCALE_INIT = 1 # type: ignore
         # regularization
         self.n_head = config.n_head
         self.n_embd = config.n_embd
@@ -72,7 +73,8 @@ class MLP(nn.Module):
         self.c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd)
         self.gelu    = nn.GELU(approximate='tanh') # 使用tanh近似的GELU激活函数（GPT2使用，现在没必要用）
         self.c_proj  = nn.Linear(4 * config.n_embd, config.n_embd)
-
+        self.c_proj.NANOGPT_SCALE_INIT = 1 # type: ignore
+        
     def forward(self, x: torch.Tensor):
         x = self.c_fc(x)
         x = self.gelu(x)
@@ -114,6 +116,25 @@ class GPT(nn.Module):
 
         # 共享权重：将token embedding的权重和最终的输出层的权重共享
         self.transformer.wte.weight = self.lm_head.weight
+
+        # 初始化权重
+        # self.apply函数会递归地将函数应用到模型的所有模块上
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        # 线性层采用正态分布初始化，均值为0，标准差为0.02，偏置为0
+        # 残差连接中为x + sublayer(x)，每个残差块都有贡献，多次累加导致其方差变大，使用缩放因子进行缩放 ：
+        # 嵌入层采用正态分布初始化，均值为0，标准差为0.02
+        if isinstance(module, nn.Linear):
+            std = 0.02
+            if hasattr(module, 'GPT_SCALE_INIT'):
+                std *= (2 * self.config.n_layer) ** -0.5
+            torch.nn.init.normal_(module.weight, mean=0.0, std=std)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
 
     def forward(self, idx: torch.Tensor, targets: torch.Tensor|None = None):
         # idx:输入序列的token索引 (B, T)
@@ -205,6 +226,10 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps"
 print(f"using device: {device}")
 device = "cpu"
+
+torch.manual_seed(1337)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(1337)
 # ------------------------------  输入处理：简易的DataLoader  ------------------------------
 # get a data batch
 class DataLoaderLite:
