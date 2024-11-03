@@ -5,6 +5,7 @@ import math
 import torch
 from torch import  nn
 from torch.nn import functional as F
+import tiktoken
 
 @dataclass
 class GPTConfig:
@@ -111,7 +112,7 @@ class GPT(nn.Module):
         # 最终的输出层
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
-    def forward(self, idx: torch.Tensor):
+    def forward(self, idx: torch.Tensor, targets: torch.Tensor|None = None):
         # idx:输入序列的token索引 (B, T)
         B, T = idx.size()
         assert T <= self.config.block_size, f"Cannot forward sequence of length {T}, block size is only {self.config.block_size}"
@@ -128,7 +129,11 @@ class GPT(nn.Module):
         x = self.transformer.ln_f(x)
         # 得到一个用对数表示的概率分布，表示下一个token的概率。
         logits = self.lm_head(x) # (B, T, vocab_size)
-        return logits
+        loss = None
+        if targets is not None:
+            # 计算交叉熵损失，将向量展平为2D张量(B * T, vocab_size)
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+        return logits, loss
 
     @classmethod
     def from_pretrained(cls, model_type:str, model_path:str|None=None):
@@ -188,19 +193,48 @@ class GPT(nn.Module):
 # model.save_pretrained('assets/gpt2')
 # print("saved model to assets/gpt2")
 
+# ------------------------------  自动检测GPU  ------------------------------
+# attempt to autodetect the device
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
+elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    device = "mps"
+print(f"using device: {device}")
+device = "cpu"
+# ------------------------------  输入序列处理  ------------------------------
+# get a data batch
+enc = tiktoken.get_encoding('gpt2')
+with open('input.txt', 'r') as f:
+    text = f.read()
+text = text[:1000]
+tokens = enc.encode(text)
+B, T = 4, 32
+buf = torch.tensor(tokens[:B*T + 1])
+x = buf[:-1].view(B, T)
+y = buf[1:].view(B, T)
+
+# ------------------------------  评估模型生成文本  ------------------------------
+# num_return_sequences = 5
+# max_length = 30
+# model = GPT.from_pretrained('gpt2', '../../assets/gpt2')
+model = GPT(config=GPTConfig())
+# model.eval()
+model.to(device)
+logits, loss = model(x, y)
+
+print(logits.shape, loss)
+import sys; sys.exit(0)
+
 num_return_sequences = 5
 max_length = 30
 model = GPT.from_pretrained('gpt2', '../../assets/gpt2')
 model.eval()
-model.to('cuda')
-
-# prefix tokens
-import tiktoken
 enc = tiktoken.get_encoding('gpt2')
 tokens = enc.encode("Hello,I'm a-language model,")
 tokens = torch.tensor(tokens,dtype=torch.long)
 tokens = tokens.unsqueeze(0).repeat(num_return_sequences,1)#(5, 8)
-x = tokens.to('cuda')
+x = tokens.to(device)
 # generate! right now x is (B, T) where B = 5, T = 8
 # set the seed to 42
 torch.manual_seed(42)

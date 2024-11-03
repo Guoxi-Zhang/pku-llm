@@ -315,7 +315,14 @@
 
     ![image-20241102170803541](./README.assets/image-20241102170803541.png)
 
+#### 自动检测GPU，加入tiny shakespeare数据集，batch划分，计算交叉熵损失
 
+- 自动检测设备：`cuda` or `cpu`，使用`torch.cuda.is_available()`判断
+- batch划分方法：
+    - 使用`view()`将输入[0:-1]系列划分为(B, T) 形状
+    - 同时创建标签[1: ] 表示 next token pred
+- 计算损失
+    - 采用交叉熵损失，计算时要将向量展平为2D张量(B * T, vocab_size)
 
 ### Section2
 
