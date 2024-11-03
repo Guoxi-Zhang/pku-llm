@@ -269,7 +269,7 @@
 - MLP实现
     - GPT2中的MLP是一个两层的全连接网络，中间有一个GELU激活函数
 
-    - gelu：类似RELU
+    - > gelu：类似RELU
 
         <img src="./README.assets/image-20241101231244529.png" alt="image-20241101231244529" style="zoom:33%;" />
 
@@ -288,7 +288,7 @@
 - 多头自注意力CausalSelfAttention 过程包括：
 
     - 对一个batch的所有头计算query, key, value，并改变其形状
-    - 计算注意力分数：$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$(做softmax之前使用一个下三角矩阵来mask未来的信息)
+    - 计算注意力分数：$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$==(做softmax之前使用一个下三角矩阵来mask未来的信息)==
     - 将多头自注意力的输出合并并经过一个线性层得到输出
 
 #### 实现GPT2的forward()，加载并测试GPT2
@@ -318,11 +318,50 @@
 #### 自动检测GPU，加入tiny shakespeare数据集，batch划分，计算交叉熵损失
 
 - 自动检测设备：`cuda` or `cpu`，使用`torch.cuda.is_available()`判断
+
 - batch划分方法：
+
     - 使用`view()`将输入[0:-1]系列划分为(B, T) 形状
-    - 同时创建标签[1: ] 表示 next token pred
+    - 同时创建标签y [1: ] 表示 next token pred
+
 - 计算损失
+
     - 采用交叉熵损失，计算时要将向量展平为2D张量(B * T, vocab_size)
+
+    - ![image-20241103113347754](./README.assets/image-20241103113347754.png)
+
+    - > 结果为`10.9986` 。每个token出现的概率为`1/50257` ，交叉熵取负对数，则为`-ln(1/50257) = 10.82`，证明**初始概率分布大致是均匀的**，可以开始训练模型
+
+#### 对一个batch进行优化
+
+- > ==优化器：SGD, Adam和 AdamW==
+    >
+    > - SGD（随机梯度下降）
+    >     - **基本介绍**：每次迭代只使用一个样本（或一小批样本）来计算梯度，然后更新模型参数。这种方法可以减少计算量，但可能导致训练过程不稳定。
+    >     - **优点**：计算效率高，易于实现。
+    >     - **缺点**：收敛速度可能较慢，需要仔细调整学习率。
+    > - Adam（自适应矩估计）
+    >     - **基本介绍**：Adam是一种结合了动量（Momentum）和RMSprop（均方根传播）的优化算法。它通过计算梯度的一阶矩（均值）和二阶矩（方差）来调整每个参数的学习率。
+    >     - **优点**：自适应调整学习率，通常收敛速度较快，对学习率的初始值不太敏感。
+    >     - **缺点**：在一些情况下可能会遇到收敛问题，特别是在训练初期。
+    > - AdamW（Adam with Weight Decay）
+    >     - **基本介绍**：AdamW是Adam优化器的一个变种，它在Adam的基础上加入了权重衰减（Weight Decay），这是一种正则化技术，用于防止模型过拟合。
+    >     - **优点**：结合了Adam的自适应学习率调整和权重衰减的正则化效果，通常在训练深度学习模型时表现更好。
+    >     - **缺点**：与Adam相比，增加了额外的超参数，需要更多的调参工作。
+
+- 循环优化
+
+    - 每一轮调用`zero_grad()`清空梯度
+
+    - `backward()`累计梯度, 
+
+    - `step()`更新参数并减少损失
+
+        > `loss.item()`将GPU的张量发送到CPU上，为float类型.
+        >
+        > ==`lr = 3e-4`: 一个对大多数优化器初期很好用的默认值==
+
+    <img src="./README.assets/image-20241103113303466.png" alt="image-20241103113303466" style="zoom:50%;" />
 
 ### Section2
 
