@@ -112,6 +112,9 @@ class GPT(nn.Module):
         # 最终的输出层
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
+        # 共享权重：将token embedding的权重和最终的输出层的权重共享
+        self.transformer.wte.weight = self.lm_head.weight
+
     def forward(self, idx: torch.Tensor, targets: torch.Tensor|None = None):
         # idx:输入序列的token索引 (B, T)
         B, T = idx.size()
@@ -202,29 +205,48 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps"
 print(f"using device: {device}")
 device = "cpu"
-# ------------------------------  输入序列处理  ------------------------------
+# ------------------------------  输入处理：简易的DataLoader  ------------------------------
 # get a data batch
-enc = tiktoken.get_encoding('gpt2')
-with open('input.txt', 'r') as f:
-    text = f.read()
-text = text[:1000]
-tokens = enc.encode(text)
-B, T = 4, 32
-buf = torch.tensor(tokens[:B*T + 1])
-buf = buf.to(device)
-x = buf[:-1].view(B, T)
-y = buf[1:].view(B, T)
+class DataLoaderLite:
+    def __init__(self, B, T):
+        self.B = B
+        self.T = T
+
+        # at init load tokens from disk and store them in memory
+        with open('input.txt', 'r') as f:
+            text = f.read()
+        enc = tiktoken.get_encoding('gpt2')
+        tokens = enc.encode(text)
+        self.tokens = torch.tensor(tokens)
+        print(f"loaded {len(self.tokens)} tokens")
+        print(f"1 epoch = {len(self.tokens) // (B * T)} batches")
+
+        # state
+        self.current_position = 0
+
+    def next_batch(self):
+        # 以B*T为一个batch遍历整个文档，返回x和y(y需要取到下一个token)
+        B, T = self.B, self.T
+        buf = self.tokens[self.current_position : self.current_position+B*T+1]
+        x = (buf[:-1]).view(B, T) # inputs
+        y = (buf[1:]).view(B, T) # targets
+        # advance the position in the tensor
+        self.current_position += B * T
+        # if loading the next batch would be out of bounds, reset
+        if self.current_position + (B * T + 1) > len(self.tokens):
+            self.current_position = 0
+        return x, y
 
 # ------------------------------  模型初始化  ------------------------------
 model = GPT(config=GPTConfig())
-
 model.to(device)
-logits, loss = model(x, y)
+train_loader = DataLoaderLite(B=4, T=32)
 
-print(logits.shape, loss)
 # ------------------------------  优化器  ------------------------------
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4) # type: ignore
 for i in range(50):
+    x, y = train_loader.next_batch()
+    x, y = x.to(device), y.to(device)
     optimizer.zero_grad()
     logits, loss = model(x, y)
     loss.backward()
