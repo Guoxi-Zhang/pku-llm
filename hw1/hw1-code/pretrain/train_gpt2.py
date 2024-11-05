@@ -30,7 +30,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(1337)
 
 # ------------------------------  模型初始化  ------------------------------
-model = GPT(config=GPTConfig())
+model = GPT(config=GPTConfig(vocab_size=50304))
 model.to(device)
 # model = torch.compile(model)
 train_loader = DataLoaderLite(B=8, T=1024)
@@ -40,7 +40,7 @@ torch.set_float32_matmul_precision('high')
 
 # ------------------------------  优化器  ------------------------------
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4) # type: ignore
-for i in range(5):
+for i in range(50):
     t0 = time.time()
     x, y = train_loader.next_batch()
     x, y = x.to(device), y.to(device)
@@ -53,9 +53,10 @@ for i in range(5):
     optimizer.step()
     torch.cuda.synchronize() # wait for the GPU to finish work
     t1 = time.time()
-    dt = (t1 - t0)*1000 # time difference in miliseconds
-    tokens_per_sec = (train_loader.B * train_loader.T) / (t1 - t0)
-    print(f"step {i}, loss: {loss.item()}, dt: {dt:.2f}ms, tok/sec: {tokens_per_sec:.2f}")
+    dt = t1 - t0 # time difference in seconds
+    tokens_processed = train_loader.B * train_loader.T
+    tokens_per_sec = tokens_processed / dt
+    print(f"step {i:4d} | loss: {loss.item():.6f} | dt: {dt*1000:.2f}ms | tok/sec: {tokens_per_sec:.2f}")
 
 import sys; sys.exit(0)
 

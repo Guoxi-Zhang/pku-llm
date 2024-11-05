@@ -442,19 +442,17 @@
 
 - 使用 `batch_size = 8,  max_sequence_length = 1024`训练
 
-    - FP32:![image-20241104172722157](./README.assets/image-20241104172722157.png)
+    - FP32:![image-20241105232011834](./README.assets/image-20241105232011834.png)
 
-    - TF32:![image-20241104171635522](./README.assets/image-20241104171635522.png)
+    - TF32: 并无明显差别![image-20241105232208745](./README.assets/image-20241105232208745.png)
 
-    - 混合精度：bfloat16 + float32:
+    - 混合精度：bfloat16 + float32: 提升较明显
 
         - 使用`with torch.autocast(device_type=device, dtype=torch.bfloat16):` 仅仅转换矩阵乘法的元素为 bfloat16，其他模型权重如softmax，layerNorm等仍使用 float32。
 
             > 因为==矩阵乘法对精度的变化更不敏感==
 
-        - ![image-20241104172751030](./README.assets/image-20241104172751030.png)
-
-    - 可以看到 bfloat16 有较大提升，而 TF32 提升很小
+        - ![image-20241105232323785](./README.assets/image-20241105232323785.png)
 
 - 调用 `torch.compile()`
 
@@ -467,6 +465,30 @@
 > **==little trick:==**
 >
 > 使用`import code; code.interact(local=locals())` 暂停代码执行，启动一个交互式 shell，用来 调试或探索数据
+
+#### 使用flash attention，修改词表大小
+
+- **==flash attention==**
+
+    > 利用底层硬件的内存层次知识**加速注意力计算**并**减少内存占用**。
+    >
+    > FlashAttention使用平铺和重计算等经典技术，将输入块从HBM加载到SRAM（快速缓存），在SRAM上执行注意力操作，并将结果更新回HBM。FlashAttention减少了内存读写量，从而实现了**2-4倍**的时钟时间加速。
+    >
+    > ![image-20241105095122123](./README.assets/image-20241105095122123.png)
+    >
+    > - 在传统的注意力机制中，如 Transformer 模型中使用的自注意力（Self-Attention），计算复杂度是 O(N^2)
+    > - FlashAttention能够以线性复杂度 O(N) 处理长序列。
+    >     - 左：FlashAttention 使用平铺来防止大型 N \* N 注意力矩阵（虚线框）在（相对）慢的 GPU HBM 上计算。在外部循环（红色箭头）中，FlashAttention 遍历 K 和 V 矩阵的模块，并将它们**加载到SRAM**。在每个块中，FlashAttention 循环访问 Q 矩阵块（蓝色箭头），将它们加载到 SRAM，并将**注意力计算的输出写回 HBM**。
+    >     - 右：在 GPT-2 上加速 PyTorch 的注意力实现。FlashAttention 不会将大型 N \* N 注意力矩阵读取和写入 HBM，从而导致注意力计算速度提高了 7.6 倍。
+
+    - 一个内核融合操作，`torch.compile()`无法发现
+    - 每秒处理的token数提升到了48000，**提升非常明显**![image-20241105231737740](./README.assets/image-20241105231737740.png)
+
+- 修改词表大小到为 50304，符合2的次幂。
+
+    - 像是在添加虚假的token（这些token在训练时学习到的概率趋近0，从没被使用），但有用！
+    - vocab_size在 `Embedding` 和最后的输出层被使用 
+    - 提升较明显![image-20241105233844064](./README.assets/image-20241105233844064.png)
 
 ### Section3：超参数,AdamW,梯度裁剪
 

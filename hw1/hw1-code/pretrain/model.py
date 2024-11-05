@@ -45,14 +45,17 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        # 计算注意力分数，通过query和key的转置的矩阵乘法，然后除以key维度的平方根。
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-        # 使用之前定义的下三角矩阵bias来mask未来的信息，将这些位置的注意力分数设置为负无穷。
-        att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
-        # 计算softmax得到注意力权重
-        att = F.softmax(att, dim=-1)
-        # 使用注意力权重和value计算加权的value，得到自注意力的输出。
-        y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+
+        # # 计算注意力分数，通过query和key的转置的矩阵乘法，然后除以key维度的平方根。
+        # att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+        # # 使用之前定义的下三角矩阵bias来mask未来的信息，将这些位置的注意力分数设置为负无穷。
+        # att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+        # # 计算softmax得到注意力权重
+        # att = F.softmax(att, dim=-1)
+        # # 使用注意力权重和value计算加权的value，得到自注意力的输出。
+        # y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+
+        y = F.scaled_dot_product_attention(q, k, v, is_causal=True) # flash attention
         # 将多头自注意力的输出重新组合在一起，并调整形状以匹配原始输入的维度。
         y = y.transpose(1, 2).contiguous().view(B, T, C) 
         # output projection
