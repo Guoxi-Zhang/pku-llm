@@ -1,5 +1,5 @@
 python generate.py \
-    --model_name_or_path gpt2 \
+    --model_name_or_path ./results/gpt2-alpaca_1-20241117-200553 \
     --max_length 512 \
     --trust_remote_code True \
     --use_lora False \

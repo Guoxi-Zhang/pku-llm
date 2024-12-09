@@ -115,7 +115,7 @@ class Trainer:
                 input_ids = batch['input_ids'].to(self.device)
                 labels = batch['labels'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels) # type: ignore
                 loss = outputs.loss / self.args.gradient_accumulation_steps
                 loss_accum += loss.detach()
                 loss.backward()
@@ -154,22 +154,22 @@ class Trainer:
         self.save()
 
     def eval(self):
-        self.model.eval()
+        self.model.eval() # type: ignore
         eval_loss = 0.0
         for batch in self.eval_dataloader:
             input_ids = batch['input_ids'].to(self.device)
             labels = batch['labels'].to(self.device)
             attention_mask = batch['attention_mask'].to(self.device)
             with torch.no_grad():
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels) # type: ignore
             eval_loss += outputs.loss / self.args.total_eval_steps
-        self.model.train()
-        return eval_loss.item()
+        self.model.train() # type: ignore
+        return eval_loss.item() # type: ignore
 
     def save(self):
         print(f'Saving model to "{self.output_dir}" ...')
         if self.args.use_lora:
-            lora_state_dict = get_lora_state_dict(self.model)
+            lora_state_dict = get_lora_state_dict(self.model) # type: ignore
             torch.save(lora_state_dict, os.path.join(self.output_dir, "lora.pt"))
         else:
             self.model.config.to_json_file(os.path.join(self.output_dir, transformers.CONFIG_NAME))

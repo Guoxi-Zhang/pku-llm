@@ -1,8 +1,8 @@
 python train.py \
-    --model_name_or_path gpt2 \
+    --model_name_or_path ./assets/gpt2 \
     --max_length 512 \
     --trust_remote_code True \
-    --use_lora False \
+    --use_lora True \
     --lora_dim 8 \
     --lora_scaling 32 \
     --lora_module_name h. \
@@ -17,4 +17,4 @@ python train.py \
     --eval_batch_size 16 \
     --eval_ratio 0.01 \
     --eval_interval 100 \
-    --output_dir_name gpt2-alpaca
+    --output_dir_name gpt2-alpaca_lora_8_32

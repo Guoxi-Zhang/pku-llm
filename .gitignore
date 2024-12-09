@@ -5,3 +5,6 @@
 /note
 *.pyc
 play.ipynb
+/hw1/hw1-code/finetune/results
+/hw1/hw1-code/finetune/assets
+/hw1/hw1-code/finetune/data

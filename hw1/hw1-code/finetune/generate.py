@@ -115,7 +115,7 @@ def main():
     if args.use_lora:
         lora_args = {"part_module_name": args.lora_module_name, "lora_dim": args.lora_dim, "lora_scaling": args.lora_scaling, "lora_load_path": args.lora_load_path}
     model, tokenizer = get_model_and_tokenizer(args.model_name_or_path, args.trust_remote_code, args.max_length, args.use_lora, lora_args)
-    model.to(device)
+    model.to(device) # type: ignore
     output_dir = os.path.join("./results", f"{args.output_dir_name}-{time.strftime('%Y%m%d-%H%M%S')}")
     assert not os.path.exists(output_dir), f"output directory {output_dir} already exists"
     os.makedirs(output_dir)

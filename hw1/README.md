@@ -579,3 +579,52 @@
 - HellaSwag 数据集的独特之处在于它需要模型根据上下文进行复杂的推理，而不仅仅是简单地匹配单词或短语。因此，它能够提供对模型的更全面的评估，使得 HellaSwag 成为测试通用语言理解能力的重要数据集之一。
 
 ## LoRA Fine-tuning
+
+### 全参数微调，生成回复
+
+微调训练记录
+
+![image-20241117171646172](./README.assets/image-20241117171646172.png)
+
+微调前回复
+
+![image-20241117210505585](./README.assets/image-20241117210505585.png)
+
+微调后回复：生成有意义的回复
+
+![image-20241117210604393](./README.assets/image-20241117210604393.png)
+
+### LoRA 实现
+
+![img](./README.assets/v2-85a4ce99f2b88645a7c1751cbc4691fd_1440w.jpg)
+$$
+h = W_0 x + \Delta W x = W_0 x + B A x
+$$
+其中：
+- $ W_0 $ 是预训练的权重矩阵，
+- $ \Delta W = B A $ 就是我们添加的额外矩阵
+- 图里的 $ r $ 就是秩，由我们自己调整。
+
+初始化时，矩阵 $ A $ 随机高斯初始化，矩阵 $ B $ 初始化为0。之所以要这样初始化的原因是，在初始阶段这两个矩阵相乘为0，可以保证在初始阶段时，只有左边的主干生效。然后 $ B A $ 还会乘以一个缩放因子 $ \frac{\alpha}{r} $，$ \alpha $ 也由我们自己指定。
+
+
+
+- **初始化 LoRA 权重**:
+    - `self.lora_right_weight` 和 `self.lora_left_weight` 是 LoRA 的低秩矩阵。`lora_right_weight` 的形状为 `(weight.size(1), lora_dim)`，`lora_left_weight` 的形状为 `(lora_dim, weight.size(0))`。
+    - 这些权重被初始化为零，并在 `init_parameters` 方法中进行适当的初始化。
+- **冻结原始权重和偏置**:
+    - `self.weight.requires_grad = False` 和 `self.bias.requires_grad = False` 用于冻结原始的权重和偏置，使其在训练过程中不会被更新。
+- **前向传播**:
+    - `original_output` 是原始线性层的输出。
+    - `lora_output` 是通过 LoRA 低秩矩阵计算的输出，并乘以 `lora_scaling` 进行缩放。
+    - 最终输出是原始输出和 LoRA 输出的加和。
+- 关闭模型中所有参数的梯度
+    - `only_optimize_lora_parameters`关闭模型中除了 LoRA 参数所有参数的梯度
+- 返回权重的state_dict
+    - `get_lora_state_dict` 函数用于提取模型中 LoRA 的左权重和右权重，并返回它们的 `state_dict`。
+
+### LoRA微调
+
+
+
+### 比较
