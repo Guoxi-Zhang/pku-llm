@@ -1,0 +1,11 @@
+1. 编译原始CPU代码
+nvcc -std=c++11 -o nbody 01-nbody.cu
+2. 编译nbody_parallel.cu，这是基础的GPU加速版本
+nvcc -arch=sm_80 -o nbody_GPU_basic nbody_parallel.cu
+3. 编译nbody_shared.cu, 这是做了内存优化的GPU加速版本
+nvcc -arch=sm_80 -o nbody_GPU_shared nbody_shared.cu
+
+4. 执行编译后的代码，默认是4096个body
+./nbody
+./nbody_GPU_basic
+./nbody_GPU_shared
