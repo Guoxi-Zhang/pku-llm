@@ -1,4 +1,6 @@
+import io
 import os
+import sys
 import time
 import json
 import argparse
@@ -8,7 +10,7 @@ import torch
 from constants import *
 from utils import str2bool
 from model import get_model_and_tokenizer
-
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Fine-tune a model on a dataset.")
@@ -89,11 +91,11 @@ def get_instructions():
         "Write a tweet describing your capabilities.",
         "Pretend you are an alien visiting Earth. Write three opinions you believe."
     ]
-
+  
 
 def generate_response(model, tokenizer, instructions, device, output_dir):
     output_file = f"{output_dir}/response.txt"
-    with open(output_file, "w") as f:
+    with open(output_file, "w",  encoding="utf-8", errors='replace') as f:
         for instruction in instructions:
             prompt = PROMPT_INPUT.format(input=instruction)
             inputs = tokenizer(prompt, return_tensors="pt")
