@@ -3,7 +3,7 @@ python train.py \
     --max_length 512 \
     --trust_remote_code True \
     --use_lora True \
-    --lora_dim 8 \
+    --lora_dim 32 \
     --lora_scaling 32 \
     --lora_module_name h. \
     --data_path ./data/alpaca_data.json \
@@ -17,4 +17,4 @@ python train.py \
     --eval_batch_size 16 \
     --eval_ratio 0.01 \
     --eval_interval 100 \
-    --output_dir_name gpt2-alpaca_lora_8_32
+    --output_dir_name gpt2-alpaca_lora_32_32

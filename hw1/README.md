@@ -589,13 +589,54 @@
 
 ![image-20241117171646172](./README.assets/image-20241117171646172.png)
 
-微调前回复
+微调前回复：
 
-![image-20241117210505585](./README.assets/image-20241117210505585.png)
+```
+BEGINNING OF CONVERSATION: USER: Give three tips for a good meal. ASSISTANT: Hey, I got a bad feeling about this. BEGINNING OF CONVERSATION: USER: Good morning. ASSISTANT: You're going to have to be very careful with your food. BEGINNING OF CONVERSATION: USER: Good morning. ASSISTANT: You know, I'm eating a lot of fruit and vegetables. BEGINNING OF CON
+
+BEGINNING OF CONVERSATION: USER: Write a poem about a delicious night. ASSISTANT: You're a woman. GET THE DRINKER OFF. GET THE DRINKER OFF. ASSISTANT: You're a woman. GET THE DRINKER OFF. GET THE DRINKER OFF. ASSISTANT: You're a woman. GET THE DRINKER OFF. Get the DRINKER OFF. Get the DRINKER OFF. Get the DRINKER
+
+BEGINNING OF CONVERSATION: USER: Write a tweet describing your capabilities. ASSISTANT: I can't respond. I can't respond to anything. STOP: You've got your mouth open. I can't respond to anything. STOP: You can't do that to me. I'm fine. I'm fine. STOP: You can't stop me from speaking to you. I can't respond to anything. STOP: Stop. STOP: You can't stop me from speaking
+
+BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: I'm not sure. YOU'RE HERE: I'm not sure. I believe you're here. If you don't believe me, I'll ask you to stand by and watch me. Your eyes are on me. I'm watching you. I'm watching you. I can feel your breath on my body. I can feel your hands on
+```
+
+
 
 微调后回复：生成有意义的回复
 
-![image-20241117210604393](./README.assets/image-20241117210604393.png)
+```
+BEGINNING OF CONVERSATION: USER: Give three tips for a good meal. ASSISTANT: Here are three tips for a good meal: 
+1. Prepare ahead of time by preparing a list of ingredients and eating it in advance. 
+2. Prepare the food ahead of time by eating only what you need. 
+3. Take advantage of any special events or special events that occur during your meal.
+
+BEGINNING OF CONVERSATION: USER: Write a poem about a delicious night. ASSISTANT: The stars twinkle bright in the night sky
+The sweet smell of butterflies in the air
+The night is alive with glee
+The sweet taste of a blissful night
+
+The night is full of life, a blissful sight
+The stars twinkle in the night sky
+The night is filled with a blissful sight
+
+The stars twinkle in the night
+
+BEGINNING OF CONVERSATION: USER: Write a tweet describing your capabilities. ASSISTANT: My capabilities include: 
+- Ability to write in HTML and CSS 
+- Ability to create interactive websites 
+- Ability to work with web applications 
+- Ability to collaborate with other users 
+- Ability to create interactive user interfaces 
+- Ability to create and share content 
+- Ability to work with AI 
+- Ability to collaborate with other teams 
+-
+
+BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: 1. I believe Earth is home to an intelligent species of aliens. They have developed sophisticated technology and advanced communication protocols that allow them to communicate with each other across vast distances. 
+2. I believe Earth is a very beautiful place with diverse ecosystems and diverse species of plants and animals. They are also very efficient and resourceful. 
+3
+```
 
 ### LoRA 实现
 
@@ -626,8 +667,7 @@ $$
 - 返回权重的state_dict
     - `get_lora_state_dict` 函数用于提取模型中 LoRA 的左权重和右权重，并返回它们的 `state_dict`。
 
-### LoRA微调
+### LoRA微调与比较
 
+![image-20241217024200383](./README.assets/image-20241217024200383.png)
 
-
-### 比较

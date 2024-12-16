@@ -2,11 +2,11 @@ python generate.py \
     --model_name_or_path ./results/gpt2-alpaca_1-20241117-200553 \
     --max_length 512 \
     --trust_remote_code True \
-    --use_lora False \
-    --lora_dim 8 \
+    --use_lora True \
+    --lora_dim 4 \
     --lora_scaling 32 \
     --lora_module_name h. \
-    --lora_load_path path-to-lora-checkpoint \
+    --lora_load_path ./results/gpt2-alpaca_lora_4_32-20241216-210737/lora.pt \
     --seed 42 \
-    --use_cuda False \
-    --output_dir_name gpt2-alpaca-eval
+    --use_cuda True \
+    --output_dir_name gpt2-alpaca_lora_eval_4_32
