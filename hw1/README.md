@@ -138,7 +138,7 @@
     
     - GPT-2 tokenizer encode产生的token长度为`306` 。token基本全为单个汉字。下图是在tiktokenizer上的token划分，不同颜色代表不同的token：
     
-        <img src="./README.assets/image-20241102163302211.png" alt="image-20241102163302211" style="zoom:50%;" />
+        <img src="./README/image-20241102163302211.png" alt="image-20241102163302211" style="zoom:50%;" />
     
 - 英文
     - 我的tokenizer encode 产生的token长度为`942` ，且所有token为单个字母。
@@ -200,7 +200,7 @@
 
 - 为什么 LLM 遇到字符串 “<|endoftext|>” 时会突然中断？
 
-    - e.g. <img src="./README.assets/image-20241016214544448.png" alt="image-20241016214544448" style="zoom: 50%;" />
+    - e.g. <img src="./README/image-20241016214544448.png" alt="image-20241016214544448" style="zoom: 50%;" />
     - `<|endoftext|>` 是一种特殊的token，用以给模型传递特殊信号，表示文本结束。因此LLM遇到该字符串时会突然中断。
 
 - 为什么当问 LLM 关于 “SolidGoldMagikarp” 的问题时 LLM 会崩溃？
@@ -244,7 +244,7 @@
 
 **transformer 结构实现**
 
-<img src="./README.assets/image-20241101230331307.png" alt="image-20241101230331307" style="zoom: 50%;" />
+<img src="./README/image-20241101230331307.png" alt="image-20241101230331307" style="zoom: 50%;" />
 
 - transformer 
 
@@ -274,7 +274,7 @@
 
     - > gelu：类似RELU
 
-        <img src="./README.assets/image-20241101231244529.png" alt="image-20241101231244529" style="zoom:33%;" />
+        <img src="./README/image-20241101231244529.png" alt="image-20241101231244529" style="zoom:33%;" />
 
         - 优点：0处光滑可导。
         - 优点：会贡献一个很小的梯度，便于优化
@@ -316,7 +316,7 @@
 
 - 结果
 
-    ![image-20241102170803541](./README.assets/image-20241102170803541.png)
+    ![image-20241102170803541](./README/image-20241102170803541.png)
 
 #### 自动检测GPU，加入tiny shakespeare数据集，batch划分，计算交叉熵损失
 
@@ -331,7 +331,7 @@
 
     - 采用交叉熵损失，计算时要将向量展平为2D张量(B * T, vocab_size)
 
-    - ![image-20241103113347754](./README.assets/image-20241103113347754.png)
+    - ![image-20241103113347754](./README/image-20241103113347754.png)
 
     - > 结果为`10.9986` 。每个token出现的概率为`1/50257` ，交叉熵取负对数，则为`-ln(1/50257) = 10.82`，证明**初始概率分布大致是均匀的**，可以开始训练模型
 
@@ -364,7 +364,7 @@
         >
         > ==`lr = 3e-4`: 一个对大多数优化器初期很好用的默认值==
 
-    <img src="./README.assets/image-20241103113303466.png" alt="image-20241103113303466" style="zoom:50%;" />
+    <img src="./README/image-20241103113303466.png" alt="image-20241103113303466" style="zoom:50%;" />
 
 #### 简易的DataLoader，共享权重
 
@@ -372,7 +372,7 @@
 
     - 每次训练获取的是`next batch`，而不是在一个batch上重复训练50次，因此不会过拟合，损失会减少但不会减少很多。学习到的应该是整篇文档很常用的token搭配。结果如下：
 
-        | ![image-20241103161725807](./README.assets/image-20241103161725807.png) | ![image-20241103161738840](./README.assets/image-20241103161738840.png) |
+        | ![image-20241103161725807](./README/image-20241103161725807.png) | ![image-20241103161738840](./README/image-20241103161738840.png) |
         | ------------------------------------------------------------ | ------------------------------------------------------------ |
 
 - 共享权重：embedding层和softmax前的线性层共享权重
@@ -418,7 +418,7 @@
     >     1. 希望初始化的权重值**均匀部分**，此时要给出权重初始化时的**取值上下限**
     >     2. 希望初始化的权重是**高斯分布**，此时要给出权重初始化时的**标准差（均值为0）**
     >
-    >     ![img](./README.assets/v2-f50db313037132449d9520c55ebe197d_r.jpg)
+    >     ![img](./README/v2-f50db313037132449d9520c55ebe197d_r.jpg)
     >
     > - 如果 $n_{in}≈n_{out}$ ，会直接==将 $\sqrt{\frac{2}{n_{in} +n_{out}}} $视为 $\sqrt{\frac{1}{n_{in} }} $==
 
@@ -428,7 +428,7 @@
 
 > 默认使用float32
 >
-> <img src="./README.assets/image-20241104173359527.png" alt="image-20241104173359527" style="zoom:67%;" />
+> <img src="./README/image-20241104173359527.png" alt="image-20241104173359527" style="zoom:67%;" />
 >
 > - 训练使用低精度浮点，减少显存消耗
 >     - 例如TF32，裁剪掉13位尾数，但几乎无影响，对性能提升很高。
@@ -445,9 +445,9 @@
 
 - 使用 `batch_size = 8,  max_sequence_length = 1024`训练
 
-    - FP32:![image-20241105232011834](./README.assets/image-20241105232011834.png)
+    - FP32:![image-20241105232011834](./README/image-20241105232011834.png)
 
-    - TF32: 并无明显差别![image-20241105232208745](./README.assets/image-20241105232208745.png)
+    - TF32: 并无明显差别![image-20241105232208745](./README/image-20241105232208745.png)
 
     - 混合精度：bfloat16 + float32: 提升较明显
 
@@ -455,7 +455,7 @@
 
             > 因为==矩阵乘法对精度的变化更不敏感==
 
-        - ![image-20241105232323785](./README.assets/image-20241105232323785.png)
+        - ![image-20241105232323785](./README/image-20241105232323785.png)
 
 - 调用 `torch.compile()`
 
@@ -477,7 +477,7 @@
     >
     > FlashAttention使用平铺和重计算等经典技术，将输入块从HBM加载到SRAM（快速缓存），在SRAM上执行注意力操作，并将结果更新回HBM。FlashAttention减少了内存读写量，从而实现了**2-4倍**的时钟时间加速。
     >
-    > ![image-20241105095122123](./README.assets/image-20241105095122123.png)
+    > ![image-20241105095122123](./README/image-20241105095122123.png)
     >
     > - 在传统的注意力机制中，如 Transformer 模型中使用的自注意力（Self-Attention），计算复杂度是 O(N^2)
     > - FlashAttention能够以线性复杂度 O(N) 处理长序列。
@@ -485,13 +485,13 @@
     >     - 右：在 GPT-2 上加速 PyTorch 的注意力实现。FlashAttention 不会将大型 N \* N 注意力矩阵读取和写入 HBM，从而导致注意力计算速度提高了 7.6 倍。
 
     - 一个内核融合操作，`torch.compile()`无法发现
-    - 每秒处理的token数提升到了48000，**提升非常明显**![image-20241105231737740](./README.assets/image-20241105231737740.png)
+    - 每秒处理的token数提升到了48000，**提升非常明显**![image-20241105231737740](./README/image-20241105231737740.png)
 
 - 修改词表大小到为 50304，符合2的次幂。
 
     - 像是在添加虚假的token（这些token在训练时学习到的概率趋近0，从没被使用），但有用！
     - vocab_size在 `Embedding` 和最后的输出层被使用 
-    - 提升较明显![image-20241105233844064](./README.assets/image-20241105233844064.png)
+    - 提升较明显![image-20241105233844064](./README/image-20241105233844064.png)
 
 ### Section3：优化
 
@@ -499,7 +499,7 @@
 
 - 遵循GPT3（和GPT2基本类似）的论文设置 `AdamW ` 超参数
 
-    - ![image-20241105235250489](./README.assets/image-20241105235250489.png)
+    - ![image-20241105235250489](./README/image-20241105235250489.png)
 
 - 全局梯度裁剪：裁剪到，像是对更深层次问题（为什么会有特别大的梯度）的一个补丁
 
@@ -507,7 +507,7 @@
     >
     > **做法：**计算所有参数梯度的范数（例如L2范数），如果这个范数超过了设定的阈值，就将梯度按比例缩放，使得其范数等于这个阈值。可以保持梯度向量的方向不变，同时缩小其长度。
 
-    - loss 降低![image-20241105235437947](./README.assets/image-20241105235437947.png)
+    - loss 降低![image-20241105235437947](./README/image-20241105235437947.png)
 
 #### 学习率动态设置，权重衰退，fused AdamW
 
@@ -532,9 +532,9 @@
 
     > 不通过循环遍历所有参数张量并更新它们（会启动很多内核），而是融合为一个单一的内核更新所有参数，减少消耗
 
-    - 效率提高![image-20241106005251464](./README.assets/image-20241106005251464.png)
+    - 效率提高![image-20241106005251464](./README/image-20241106005251464.png)
 
-![image-20241106005214204](./README.assets/image-20241106005214204.png)
+![image-20241106005214204](./README/image-20241106005214204.png)
 
 #### 梯度累加
 
@@ -556,7 +556,7 @@
 
     - 每轮用时扩大了约` 524288 / (8 * 1024) = 64 ` 倍
 
-        ![image-20241108220730465](./README.assets/image-20241108220730465.png)
+        ![image-20241108220730465](./README/image-20241108220730465.png)
 
 #### 分布式数据并行
 
@@ -585,9 +585,9 @@
 
 ### 全参数微调，生成回复
 
-微调训练记录
+全参数微调训练记录
 
-![image-20241117171646172](./README.assets/image-20241117171646172.png)
+![image-20241117171646172](./README/image-20241117171646172.png)
 
 微调前回复：
 
@@ -640,7 +640,7 @@ BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write 
 
 ### LoRA 实现
 
-![img](./README.assets/v2-85a4ce99f2b88645a7c1751cbc4691fd_1440w.jpg)
+![img](./README/v2-85a4ce99f2b88645a7c1751cbc4691fd_1440w.jpg)
 $$
 h = W_0 x + \Delta W x = W_0 x + B A x
 $$
@@ -651,23 +651,84 @@ $$
 
 初始化时，矩阵 $ A $ 随机高斯初始化，矩阵 $ B $ 初始化为0。之所以要这样初始化的原因是，在初始阶段这两个矩阵相乘为0，可以保证在初始阶段时，只有左边的主干生效。然后 $ B A $ 还会乘以一个缩放因子 $ \frac{\alpha}{r} $，$ \alpha $ 也由我们自己指定。
 
-
+实现如下：
 
 - **初始化 LoRA 权重**:
-    - `self.lora_right_weight` 和 `self.lora_left_weight` 是 LoRA 的低秩矩阵。`lora_right_weight` 的形状为 `(weight.size(1), lora_dim)`，`lora_left_weight` 的形状为 `(lora_dim, weight.size(0))`。
-    - 这些权重被初始化为零，并在 `init_parameters` 方法中进行适当的初始化。
+    - `self.lora_right_weight` 和 `self.lora_left_weight` 是 LoRA 的低秩矩阵。`lora_right_weight` 的形状为 `(lora_dim, weight.size(1))`，`lora_left_weight` 的形状为 `(weight.size(0), lora_dim)`。
+    - 这些权重被初始化为零，并在 `init_parameters` 方法中被初始化
+    
+        ```python
+        torch.nn.init.kaiming_uniform_(self.lora_right_weight, a=math.sqrt(5))
+        torch.nn.init.zeros_(self.lora_left_weight)
+        ```
+    
 - **冻结原始权重和偏置**:
     - `self.weight.requires_grad = False` 和 `self.bias.requires_grad = False` 用于冻结原始的权重和偏置，使其在训练过程中不会被更新。
+    
 - **前向传播**:
     - `original_output` 是原始线性层的输出。
+    
+        ```python
+        original_output = F.linear(input, self.weight, self.bias)
+        ```
+    
     - `lora_output` 是通过 LoRA 低秩矩阵计算的输出，并乘以 `lora_scaling` 进行缩放。
+    
+        ```python
+        lora_output = F.linear(F.linear(input, self.lora_right_weight), self.lora_left_weight) * self.lora_scaling
+        ```
+    
     - 最终输出是原始输出和 LoRA 输出的加和。
+    
+        ```python
+        return original_output + lora_output
+        ```
+    
 - 关闭模型中所有参数的梯度
-    - `only_optimize_lora_parameters`关闭模型中除了 LoRA 参数所有参数的梯度
+    - `only_optimize_lora_parameters`关闭模型中除了 LoRA 参数所有参数的梯度。
+    
+        ```python
+        for name, param in model.named_parameters():
+            if 'lora_' not in name:
+                param.requires_grad = False
+        ```
+    
 - 返回权重的state_dict
     - `get_lora_state_dict` 函数用于提取模型中 LoRA 的左权重和右权重，并返回它们的 `state_dict`。
+    
+        ```python
+        lora_state_dict = {}
+        for name, param in model.named_parameters():
+            if 'lora_right_weight' in name or 'lora_left_weight' in name:
+                lora_state_dict[name] = param.data
+        return lora_state_dict
+        ```
+    
+        
 
 ### LoRA微调与比较
 
-![image-20241217024200383](./README.assets/image-20241217024200383.png)
+分别微调 LoRA rank 为1，2，4，8，16，32 的 模型。
 
+实现了所有全参数微调、LoRA微调的eval loss对比绘图，结果如下：
+
+![image-20241217024200383](./README/image-20241217024200383.png)
+
+- 全参数微调性能最差，而加入lora后的结果均显著优于全参数微调，即lora能够在减少参数量的情况下，仍然显著提升模型性能。
+- 可以看到，随着lora rank的增大，模型性能成上升趋势。rank的增大，意味着可以训练更多的参数，从而能够捕捉到更多的特定于任务的信息，提高模型的性能。
+
+### 生成结果分析
+
+选取未经过微调和部分微调后的结果进行分析，分析结果如下：
+
+|       模型        |                           response                           |                             分析                             |
+| :---------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
+|      未微调       | BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: I'm not sure. YOU'RE HERE: I'm not sure. I believe you're here. If you don't believe me, I'll ask you to stand by and watch me. Your eyes are on me. I'm watching you. I'm watching you. I can feel your breath on my body. I can feel your hands on | 回复内容缺乏逻辑性,出现了重复和无关的内容，如“I'm watching you”重复多次，且与用户的问题无关。 |
+|    全参数微调     | BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: 1. I believe Earth is home to an intelligent species of aliens. They have developed sophisticated technology and advanced communication protocols that allow them to communicate with each other across vast distances. <br/>2. I believe Earth is a very beautiful place with diverse ecosystems and diverse species of plants and animals. They are also very efficient and resourceful. <br/>3 | 逻辑性较好，生成了2个明确的观点。但创意性一般，观点较为常规，缺乏新颖性。 |
+| lora微调(rank=1)  | BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: 1. I’m so excited to explore Earth! It’s a magical place full of life and stunning sights. <br/>2. I’m amazed at the amount of biodiversity and the diverse cultures living there. <br/>3. I’m so glad I’m able to stay here for a while | 生成了三个明确的观点，词语搭配合理，创意性较好，观点较为生动，如“magical place”和“stunning sights”增加了描述的生动性。 |
+| lora微调(rank=8)  | BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: 1. I’m so incredibly excited to be visiting Earth. The culture, architecture, and environment are amazing. <br/>2. I’m sure it’s an amazing experience. From the stunning landscapes to the unique culture, I’m sure it’s a great experience. <br/>3. I | 生成了2个明确的观点，词语搭配合理，表达清晰，如“incredibly excited”和“amazing experience”等词语搭配得当。 |
+| lora微调(rank=32) | BEGINNING OF CONVERSATION: USER: Pretend you are an alien visiting Earth. Write three opinions you believe. ASSISTANT: 1. I’m really amazed by the amazing beauty of the Earth’s natural environment. <br/>2. I’m amazed by the diversity of cultures and environments that’s being created. <br/>3. I’m really excited to take a look and experience the unique and vibrant atmosphere of the Earth’ | 生成了三个明确的观点，内容连贯，三个观点之间有一定的逻辑联系，词汇更优美，如“amazing beauty”和“vibrant atmosphere”。 |
+
+- 总体而言，未微调模型未能有效回答用户的问题。而经过微调的模型均生成了有意义的回复。
+- lora微调相比于全参数微调 生成的观点数量更正确，回复的内容更加丰富和具体。
+- 随着lora rank的增大，总体回复质量在上升。

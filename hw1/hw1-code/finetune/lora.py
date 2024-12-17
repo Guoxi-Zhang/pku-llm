@@ -13,8 +13,8 @@ class LoRALinear(torch.nn.Module):
         self.bias = torch.nn.Parameter(bias)
 
         # TODO: Implement lora left and right weights
-        self.lora_right_weight = torch.nn.Parameter(torch.zeros((lora_dim, weight.size(1))))
         self.lora_left_weight = torch.nn.Parameter(torch.zeros((weight.size(0), lora_dim)))
+        self.lora_right_weight = torch.nn.Parameter(torch.zeros((lora_dim, weight.size(1))))
         #############################################
         self.lora_scaling = lora_scaling / lora_dim
         self.init_parameters()
