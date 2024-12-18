@@ -1,4 +1,3 @@
-
 */__pycache__
 /hw1/assets
 /hw1/draft
@@ -9,3 +8,4 @@ play.ipynb
 /hw1/hw1-code/finetune/assets
 /hw1/hw1-code/finetune/data
 .DS_Store
+**/.DS_Store
