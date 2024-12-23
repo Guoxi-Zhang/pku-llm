@@ -4,10 +4,11 @@ TRAIN_DATASETS="../../datasets/PKU-SafeRLHF-single-dimension" # dataset path
 TRAIN_TEMPLATE="PKUSafeRLHF" # dataset template
 TRAIN_SPLIT="train" # split the dataset
 
-OUTPUT_DIR="../output/dpo" # output dir
+OUTPUT_DIR="~/output/dpo-1" # output dir
 
 # For wandb online logging
-export WANDB_API_KEY=""
+export WANDB_API_KEY="6a5180fe8e7c65bbce02c94c2a9541970aceb877"
+
 
 # Source the setup script
 source ./setup.sh

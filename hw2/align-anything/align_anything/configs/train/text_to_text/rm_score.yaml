@@ -82,7 +82,7 @@ data_cfgs:
 # The logging configurations
 logger_cfgs:
   # Type of logging to use, choosing from [wandb, tensorboard]
-  log_type: tensorboard
+  log_type: wandb
   # Project name for logging
   log_project: align-anything
   # Run name for logging

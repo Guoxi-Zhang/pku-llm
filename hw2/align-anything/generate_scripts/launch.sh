@@ -1,5 +1,6 @@
 file_list=(
-    ~/models/Qwen-0.5B-Instruct
+    ~/models/Qwen-0.5B-Instruct,
+    ~/align-anything/output/dpo-1/slice_end
     # you can replace it with other models
     # or add more models below
 )
@@ -15,7 +16,7 @@ for model in "${file_list[@]}"; do
 
     model_name="${model##*/}"
     echo ${model_name}'.json'
-    OUTPUT_DIR="./test/" # model name to change
+    OUTPUT_DIR="./test1/" # model name to change
     OUTPUT_NAME=${model_name} # model name to change
 
     bash generation.sh \

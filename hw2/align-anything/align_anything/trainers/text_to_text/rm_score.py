@@ -153,7 +153,7 @@ class RMScore(SupervisedTrainerBase):
             output_name = os.path.join(self.cfgs.logger_cfgs.output_dir, 'eval_data_with_score.json')
             with open(output_name, 'w') as f:
                 json.dump(final_data_with_score, f, indent=4)
-            print(f'Saved {len(final_data_with_score)} samples to {output_name}')
+                print(f'Saved {len(final_data_with_score)} samples to {output_name}')
 
 def main():
     # setup distribution training
