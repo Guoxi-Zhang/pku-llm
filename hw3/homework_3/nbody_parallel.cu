@@ -6,7 +6,7 @@
 #include <cuda_runtime.h>
 
 #define SOFTENING 1e-9f
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 128
 
 /*
  * Each body contains x, y, and z coordinate positions,
