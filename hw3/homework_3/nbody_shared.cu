@@ -69,9 +69,7 @@ __global__ void bodyForce(Body *p, float dt, int n)
         atomicAdd(&p[i].vx, dt * Fx);
         atomicAdd(&p[i].vy, dt * Fy);
         atomicAdd(&p[i].vz, dt * Fz);
-        // p[i].vx += dt * Fx;
-        // p[i].vy += dt * Fy;
-        // p[i].vz += dt * Fz;
+
     }
 }
 
