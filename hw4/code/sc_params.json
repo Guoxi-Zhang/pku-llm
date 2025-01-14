@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES, ALL RIGHTS RESERVED.
+ *
+ * This software product is a proprietary product of NVIDIA CORPORATION &
+ * AFFILIATES (the "Company") and all right, title, and interest in and to the
+ * software product, including all associated intellectual property rights, are
+ * and shall remain exclusively with the Company.
+ *
+ * This software product is governed by the End User License Agreement
+ * provided with the software product.
+ *
+ */
+{
+	"doca_general_flags": {
+		// -l - Set the (numeric) log level for the program <10=DISABLE, 20=CRITICAL, 30=ERROR, 40=WARNING, 50=INFO, 60=DEBUG, 70=TRACE>
+		"log-level": 60
+	},
+	"doca_program_flags": {
+		// -s - message size in bytes
+		"msg-size": 128,
+		// -n - number of messages to send
+		"num-msgs": 256,
+		// -p - commm channel doca device pci address
+		"pci-addr": "03:00.0",
+		// -r - comm channel doca device representor pci address
+		"rep-pci": "b1:00.0"
+	}
+}
